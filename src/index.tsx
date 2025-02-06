@@ -1,42 +1,168 @@
+import clsx from 'clsx';
 import { render } from 'preact';
-
-import preactLogo from './assets/preact.svg';
+import { useState } from 'preact/hooks';
 import './style.css';
 
-export function App() {
-  return (
-    <div>
-      <a href="https://preactjs.com" target="_blank">
-        <img src={preactLogo} alt="Preact logo" height="160" width="160" />
-      </a>
-      <h1>Get Started building Vite-powered Preact Apps </h1>
-      <section>
-        <Resource
-          title="Learn Preact"
-          description="If you're new to Preact, try the interactive tutorial to learn important concepts"
-          href="https://preactjs.com/tutorial"
-        />
-        <Resource
-          title="Differences to React"
-          description="If you're coming from React, you may want to check out our docs to see where Preact differs"
-          href="https://preactjs.com/guide/v10/differences-to-react"
-        />
-        <Resource
-          title="Learn Vite"
-          description="To learn more about Vite and how you can customize it to fit your needs, take a look at their excellent documentation"
-          href="https://vitejs.dev"
-        />
-      </section>
-    </div>
-  );
+enum Removed {
+  None = 0,
+  Left = 0x01,
+  Right = 0x02,
+  Both = 0x03,
+}
+enum Side {
+  Red = 0,
+  Black = 1,
 }
 
-function Resource(props) {
+interface Piece {
+  id: number;
+  name: string;
+}
+
+enum SpecialPieces {
+  Engineer = 1,
+  Bomb = 0,
+  Landmine = -1,
+}
+
+const pieces: Piece[] = [
+  { id: 9, name: '司令' },
+  { id: 8, name: '军长' },
+  { id: 7, name: '师长' },
+  { id: 6, name: '旅长' },
+  { id: 5, name: '团长' },
+  { id: 4, name: '营长' },
+  { id: 3, name: '连长' },
+  { id: 2, name: '排长' },
+  { id: 1, name: '工兵' },
+  { id: 0, name: '炸弹' },
+  { id: -1, name: '地雷' },
+];
+
+export function App() {
+  const [left, setLeft] = useState<Piece | null>();
+  const [right, setRight] = useState<Piece | null>();
+  const [removed, setRemoved] = useState(Removed.None);
+  const [leftColor, setLeftColor] = useState(Side.Red);
+
+  const compare = (l: Piece, r: Piece) => {
+    if (l.id == SpecialPieces.Bomb || r.id == SpecialPieces.Bomb) {
+      setRemoved(Removed.Both);
+      return;
+    }
+    if (l.id == SpecialPieces.Landmine) {
+      switch (r.id) {
+        case SpecialPieces.Landmine:
+          alert('选子无效，请重新选子。');
+          return;
+        case SpecialPieces.Engineer:
+          setRemoved(Removed.Left);
+          return;
+        default:
+          setRemoved(Removed.Right);
+          return;
+      }
+    }
+    if (r.id == SpecialPieces.Landmine) {
+      switch (l.id) {
+        case SpecialPieces.Engineer:
+          setRemoved(Removed.Right);
+          return;
+        default:
+          setRemoved(Removed.Left);
+          return;
+      }
+    }
+
+    if (l.id < r.id) {
+      setRemoved(Removed.Left);
+      return;
+    }
+
+    if (l.id > r.id) {
+      setRemoved(Removed.Right);
+      return;
+    }
+    setRemoved(Removed.Both);
+  };
+
   return (
-    <a href={props.href} target="_blank" class="resource">
-      <h2>{props.title}</h2>
-      <p>{props.description}</p>
-    </a>
+    <div class="board">
+      <div class="header-left">
+        <div class="placeholder">
+          {left && (
+            <div
+              class={clsx(
+                'piece',
+                leftColor === Side.Red ? 'red' : 'black',
+                (removed & Removed.Left) === 0 ? 'back' : 'removed'
+              )}
+            >
+              {(removed & Removed.Left) > 0 && left.name}
+            </div>
+          )}
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="placeholder">
+          {right && (
+            <div
+              class={clsx(
+                'piece',
+                leftColor === Side.Black ? 'red' : 'black',
+                (removed & Removed.Right) === 0 ? 'back' : 'removed'
+              )}
+            >
+              {(removed & Removed.Right) > 0 && right.name}
+            </div>
+          )}
+        </div>
+      </div>
+      <div class={clsx('left', leftColor === Side.Red ? 'red' : 'black')}>
+        {pieces.map((p) => (
+          <div
+            class="piece"
+            onClick={() => {
+              setLeft(p);
+              if ((removed & Removed.Right) > 0) {
+                setRight(null);
+              }
+              setRemoved(Removed.None);
+            }}
+          >
+            {p.name}
+          </div>
+        ))}
+      </div>
+      <div class="middle">
+        <button
+          class="button"
+          disabled={left === null || right === null}
+          onClick={() => compare(left, right)}
+        >
+          碰
+        </button>
+        <button class="button" onClick={() => setLeftColor(1 - leftColor)}>
+          换边
+        </button>
+      </div>
+      <div class={clsx('right', leftColor === Side.Black ? 'red' : 'black')}>
+        {pieces.map((p) => (
+          <div
+            class="piece"
+            onClick={() => {
+              setRight(p);
+              if ((removed & Removed.Left) > 0) {
+                setLeft(null);
+              }
+              setRemoved(Removed.None);
+            }}
+          >
+            {p.name}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
