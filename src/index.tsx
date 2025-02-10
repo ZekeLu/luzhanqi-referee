@@ -142,7 +142,18 @@ export function App() {
         >
           碰
         </button>
-        <button class="button" onClick={() => setLeftColor(1 - leftColor)}>
+        <button
+          class="button"
+          onClick={() => {
+            const temp = left;
+            setLeft(right);
+            setRight(temp);
+            if (removed === Removed.Left || removed == Removed.Right) {
+              setRemoved(3 - removed);
+            }
+            setLeftColor(1 - leftColor);
+          }}
+        >
           换边
         </button>
       </div>
